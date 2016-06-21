@@ -69,7 +69,8 @@
 		onNodeUnchecked: undefined,
 		onNodeUnselected: undefined,
 		onSearchComplete: undefined,
-		onSearchCleared: undefined
+		onSearchCleared: undefined,
+		onInitialized: undefined
 	};
 
 	_default.options = {
@@ -142,7 +143,12 @@
 
 			// Search methods
 			search: $.proxy(this.search, this),
-			clearSearch: $.proxy(this.clearSearch, this)
+			clearSearch: $.proxy(this.clearSearch, this),
+
+			// Jeff's methods
+			getElement: $.proxy(this.getElement, this),
+			getNodes: $.proxy(this.getNodes, this),
+			findByAttributes: $.proxy(this.findByAttributes, this)
 		};
 	};
 
@@ -245,6 +251,10 @@
 
 		if (typeof (this.options.onSearchCleared) === 'function') {
 			this.$element.on('searchCleared', this.options.onSearchCleared);
+		}
+
+		if (typeof (this.options.onInitialized) === 'function') {
+			this.$element.on('initialized', this.options.onInitialized);
 		}
 	};
 
@@ -1213,6 +1223,35 @@
 		}
 	};
 
+	Tree.prototype.getElement = function () {
+		return this.$element;
+	}
+
+	Tree.prototype.getNodes = function () {
+		return $.extend(true, {}, this.nodes);
+	}
+
+	Tree.prototype.findByAttributes = function (attributes) {
+		attributes = attributes || {};
+		var keys = Object.keys(this.nodes);
+		var attributeKeys = Object.keys(attributes);
+		var node = null;
+		keys.forEach(function(key) {
+			var match = true;
+			attributeKeys.forEach(function(attrKey) {
+				if (attributes[attrKey] !== this.nodes[key][attrKey]) {
+					match = false;
+					return;
+				}
+			}, this);
+			if (match) {
+				node = this.nodes[key];
+				return;
+			}
+		}, this);
+		return node;
+	}
+
 	// Prevent against multiple instantiations,
 	// handle updates and method calls
 	$.fn[pluginName] = function (options, args) {
@@ -1239,7 +1278,9 @@
 				result = _this;
 			}
 			else {
-				$.data(this, pluginName, new Tree(this, $.extend(true, {}, options)));
+				var newTree = new Tree(this, $.extend(true, {}, options));
+				$.data(this, pluginName, newTree);
+				newTree.getElement().trigger('initialized');
 			}
 		});
 
